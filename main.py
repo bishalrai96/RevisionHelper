@@ -16,12 +16,12 @@ answers_saved_path = "C:\\Answers"
 
 class Timer:
     def __init__(self):
-        self.minute = 0
-        self.seconds = 5
+        self.minute = 6
+        self.seconds = 59
 
     def reset(self):
-        self.minute = 0
-        self.seconds = 5
+        self.minute = 6
+        self.seconds = 59
 
     def current_timer(self):
         return str(self.minute) + ":" + str(self.seconds)
@@ -43,6 +43,7 @@ def get_random_card():
         input_text.config(state="normal", background="white")
     label_topic.config(text=reader.get_random_topic())
     timer.reset()
+    label_file_saved.config(text="")
 
 
 def save_answers():
@@ -56,14 +57,15 @@ def save_answers():
     filename = slugify(reader.current_topic) + datetime.now().strftime("%d-%b-%Y-%H-%M-%S") + ".txt"
 
     full_file_path = os.path.join(file_location, filename)
-    try:
-        file = open(full_file_path, "w+")
-        file.write(ans)
-        file.close()
-        label_file_saved.config(text="File saved successfully", fg="green")
-    except Exception as e:
-        label_file_saved.config(text="There was an error saving a file", fg="red")
-        print("cannot write to file {}".format(e))
+    if ans:
+        try:
+            file = open(full_file_path, "w+")
+            file.write(ans)
+            file.close()
+            label_file_saved.config(text="File saved successfully", fg="green")
+        except Exception as e:
+            label_file_saved.config(text="There was an error saving a file", fg="red")
+            print("cannot write to file {}".format(e))
 
 
 def clear_input_text():
@@ -73,6 +75,8 @@ def clear_input_text():
         input_text.config(state="normal")
         input_text.delete('1.0', tk.END)
         input_text.config(state="disabled")
+
+    label_file_saved.config(text="")
 
 
 def update_stopwatch():
@@ -90,6 +94,7 @@ class BPTReader:
         self.workbook = None
         self.parse_file()
         self.current_topic = None
+        self.get_all_topics()
 
     def get_max_rows(self):
         return self.workbook.active.max_row
@@ -115,8 +120,6 @@ class BPTReader:
 
 if __name__ == "__main__":
     reader = BPTReader()
-    print(reader.get_all_topics())
-
     timer = Timer()
 
     window = tk.Tk()

@@ -2,16 +2,16 @@
 
 # Press Shift+F10 to execute it or replace it with your code.
 # Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
-import tkinter as tk
-import openpyxl
 import pathlib
-import random
+import tkinter as tk
 from apscheduler.schedulers.background import BackgroundScheduler
 import os
 from datetime import datetime
 from slugify import slugify
-
-answers_saved_path = "C:\\Answers"
+import playsound
+from PIL import ImageTk, Image
+from Reader.BPTReader import BPTReader
+from tkinter import filedialog
 
 
 class Timer:
@@ -88,74 +88,133 @@ def update_stopwatch():
     # save file
 
 
-class BPTReader:
-    def __init__(self):
-        self.topics = []
-        self.workbook = None
-        self.parse_file()
-        self.current_topic = None
-        self.get_all_topics()
+process = None
 
-    def get_max_rows(self):
-        return self.workbook.active.max_row
 
-    def parse_file(self):
-        current_path = pathlib.Path().resolve()
-        settings_file = open(str(current_path) + "\\settings.txt", "r")
-        excel_file_path = settings_file.readline()
-        settings_file.close()
-        self.workbook = openpyxl.load_workbook(excel_file_path)
+def stop_music():
+    global process
+    if process is not None:
+        process.terminate()
+        process = None
 
-    def get_all_topics(self):
-        for row in range(1, self.get_max_rows() + 1):
-            topic = self.workbook.active.cell(row=row, column=2)
-            if topic.value is not None:
-                self.topics.append(topic.value)
-        return self.topics
 
-    def get_random_topic(self):
-        self.current_topic = random.choice(self.topics)
-        return self.current_topic
+def play_music():
+    global process
+    process = Process(name="sound", target=play, daemon=True)
+    process.start()
+
+
+def play():
+    playsound.playsound("Enchanted_TS.mp3")
+
+
+def show_photo():
+    if button_show_me.cget("text") == "show love birds <3":
+        love_birds_label.grid()
+        button_show_me.config(text="Hide love birds :'(")
+    else:
+        love_birds_label.grid_forget()
+        button_show_me.config(text="show love birds <3")
+    pass
+
+
+def ask_open_directory():
+    global answers_saved_path
+    answers_saved_path = filedialog.askdirectory()
+    if answers_saved_path:
+        input_save_location.delete("1.0", tk.END)
+        input_save_location.insert(tk.INSERT, answers_saved_path)
+
+
+def browse_excel_file():
+    excel_path = filedialog.askopenfile()
+    if excel_path:
+        label_excel_location.config(text=excel_path.name)
+
+    reader.parse_file(excel_path.name)
+    reader.get_all_topics()
+    button.update()
 
 
 if __name__ == "__main__":
+    answers_saved_path = "C:\\Answers"
     reader = BPTReader()
+
+    current_path = pathlib.Path().resolve()
+    settings_file = open(str(current_path) + "\\settings.txt", "r")
+    excel_file_path = settings_file.readline()
+    settings_file.close()
+
+    reader.parse_file(excel_file_path)
+    reader.get_all_topics()
+
     timer = Timer()
 
     window = tk.Tk()
     window.title("Flash card revision")
-    window.geometry('400x400')
 
-    label_topic = tk.Label(window, text=reader.get_random_topic(), fg="red", font="Arial 12 bold")
-    label_topic.place(x=80, y=40)
+    screen_width = window.winfo_screenwidth()
+    screen_height = window.winfo_screenheight()
 
-    label_timer = tk.Label(window, text=timer.current_timer(), fg="black")
-    label_timer.place(x=80, y=70)
+    window.geometry(str(screen_width)+"x"+str(screen_height))
 
-    button = tk.Button(window, text="Get card", fg="black", command=get_random_card)
-    button.place(x=80, y=100)
+    excel_file = tk.Button(window, text="Browse Excel", command=browse_excel_file)
+    excel_file.grid(row=8, column=0, sticky="w", padx="30", pady="10")
 
-    button_clear = tk.Button(window, text="Clear", fg="black", command=clear_input_text)
-    button_clear.place(x=80, y=400)
-
-    button_save = tk.Button(window, text="Save", fg="black", command=save_answers)
-    button_save.place(x=125, y=400)
-
-    input_text = tk.Text(window, height=15, width=100)
-    input_text.place(x=80, y=150)
-
-    label_save_location = tk.Label(window, text="location:")
-    label_save_location.place(x=140, y=70)
-
-    input_save_location = tk.Text(window, height=1, width=80)
-    input_save_location.insert(tk.INSERT, answers_saved_path)
-    input_save_location.place(x=195, y=70)
+    label_excel_location = tk.Label(window, text="C:test")
+    label_excel_location.grid(row=8, column=0, sticky="w", padx="110")
 
     schedule = BackgroundScheduler()
     schedule.add_job(update_stopwatch, "interval", seconds=1)
     schedule.start()
 
+    label_topic = tk.Label(window, text=reader.get_random_topic(), fg="red", font="Arial 12 bold")
+    label_topic.grid(row=1, column=0)
+    label_topic.grid_rowconfigure(1, weight=1)
+    label_topic.grid_columnconfigure(1, weight=1)
+
+    label_timer = tk.Label(window, text=timer.current_timer(), fg="black")
+    label_timer.grid(row=2, column=0, padx="5")
+
+    button = tk.Button(window, text="Get card", fg="black", command=get_random_card)
+    button.grid(row=3, column=0, pady=10)
+
+    label_save_location = tk.Button(window, text="location:", command=ask_open_directory)
+    label_save_location.grid(row=4, column=0, sticky="w", padx=30)
+
+    input_save_location = tk.Text(window, height=1, width=80)
+    input_save_location.insert(tk.INSERT, answers_saved_path)
+    input_save_location.grid(row=4, column=0, padx=90, sticky="w")
+
+    input_text = tk.Text(window, height=15, width=100)
+    input_text.grid(row=5, column=0, columnspan="3", padx=30, pady=10)
+
+    button_save = tk.Button(window, text="Save", fg="black", command=save_answers)
+    button_save.grid(row=6, column=0, sticky="w", padx=30)
+
+    button_clear = tk.Button(window, text="Clear", fg="black", command=clear_input_text)
+    button_clear.grid(row=6, column=0, stick="w", padx="80")
+
+    #------------------------------------
+
+    from multiprocessing import Process
+
+    button_play_music = tk.Button(window, text="Play", command=play_music)
+    button_play_music.grid(row=6, column=0, stick="w", padx="130")
+
+    button_stop = tk.Button(window, text="Stop", command=stop_music)
+    button_stop.grid(row=6, column=0, stick="w", padx="180")
+
+    button_show_me = tk.Button(window, text="show love birds <3", command=show_photo)
+    button_show_me.grid(row=6, column=0, stick="w", padx="230")
+
     label_file_saved = tk.Label(window)
-    label_file_saved.place(x=80, y=430)
+    label_file_saved.grid(row=7, column=0, stick="w", padx="50")
+
+    img = ImageTk.PhotoImage(Image.open("heart.jpg").resize((450, 300), Image.ANTIALIAS))
+
+    love_birds_label = tk.Label(window, image=img)
+    love_birds_label.grid(row=8, rowspan=2, columnspan=2)
+    love_birds_label.grid_forget()
 
     window.mainloop()

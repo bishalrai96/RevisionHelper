@@ -12,16 +12,28 @@ import playsound
 from PIL import ImageTk, Image
 from Reader.BPTReader import BPTReader
 from tkinter import filedialog
+import multiprocessing
 
+TIMER_ID = "TIMER"
+process = None
+schedule = BackgroundScheduler()
+
+STOP, PAUSE, RESUME = 1, 2, 3
 
 class Timer:
     def __init__(self):
-        self.minute = 6
-        self.seconds = 59
+        self.status = RESUME
+        self.PAUSE = 0
+        self.RESUME = 0
 
-    def reset(self):
-        self.minute = 6
-        self.seconds = 59
+        self.default_minute = 4
+        self.default_second = 60
+        self.minute = self.default_minute
+        self.seconds = self.default_second
+
+    def reset(self, minute=4, second=60):
+        self.minute = minute
+        self.seconds = second
 
     def current_timer(self):
         return str(self.minute) + ":" + str(self.seconds)
@@ -79,16 +91,50 @@ def clear_input_text():
     label_file_saved.config(text="")
 
 
+def is_valid_time(user_timer):
+    global timer
+    import time
+    try:
+        user_timer = time.strptime(user_timer, "%M:%S")
+
+    except Exception as e:
+        return False
+
+    return user_timer
+
+
+def start_timer():
+    if timer.status == PAUSE:
+        timer.status = RESUME
+
+    elif timer.status == STOP:
+        user_timer = is_valid_time(input_set_timer.get())
+        if user_timer:
+            timer.reset(user_timer.tm_min, user_timer.tm_sec)
+        timer.status = RESUME
+
+    if schedule.get_job(job_id=TIMER_ID) is None:
+        user_timer = is_valid_time(input_set_timer.get())
+        if user_timer:
+            timer.reset(user_timer.tm_min, user_timer.tm_sec)
+        schedule.add_job(update_stopwatch, "interval", seconds=1, id=TIMER_ID)
+        schedule.start()
+
+
 def update_stopwatch():
-    timer.update_timer()
-    label_timer.config(text=timer.current_timer())
-    if timer.seconds == 0 and timer.minute == 0:
-        input_text.config(state="disabled", background="light grey")
+    if timer.status is RESUME:
+        timer.update_timer()
+        label_timer.config(text=timer.current_timer())
+        if timer.seconds == 0 and timer.minute == 0:
+            input_text.config(state="disabled", background="light grey")
 
-    # save file
+
+def stop_timer():
+    timer.status = STOP
 
 
-process = None
+def pause_timer():
+    timer.status = PAUSE
 
 
 def stop_music():
@@ -155,66 +201,73 @@ if __name__ == "__main__":
 
     screen_width = window.winfo_screenwidth()
     screen_height = window.winfo_screenheight()
-
     window.geometry(str(screen_width)+"x"+str(screen_height))
-
-    excel_file = tk.Button(window, text="Browse Excel", command=browse_excel_file)
-    excel_file.grid(row=8, column=0, sticky="w", padx="30", pady="10")
-
-    label_excel_location = tk.Label(window, text="C:test")
-    label_excel_location.grid(row=8, column=0, sticky="w", padx="110")
-
-    schedule = BackgroundScheduler()
-    schedule.add_job(update_stopwatch, "interval", seconds=1)
-    schedule.start()
 
     label_topic = tk.Label(window, text=reader.get_random_topic(), fg="red", font="Arial 12 bold")
     label_topic.grid(row=1, column=0)
-    label_topic.grid_rowconfigure(1, weight=1)
-    label_topic.grid_columnconfigure(1, weight=1)
+
+    input_set_timer = tk.Entry(window, fg="black", width="5")
+    input_set_timer.grid(row=2)
+    input_set_timer.insert(tk.INSERT, timer.current_timer())
+
+    button_start_timer = tk.Button(window, text="Start", command=start_timer)
+    button_start_timer.grid(row=3, sticky="w", padx="340", pady="10")
+
+    button_pause_timer = tk.Button(window, text="Pause", command=pause_timer)
+
+    button_stop_timer = tk.Button(window, text="Stop", command=stop_timer)
+    button_stop_timer.grid(row=3, sticky="w", padx="380")
 
     label_timer = tk.Label(window, text=timer.current_timer(), fg="black")
-    label_timer.grid(row=2, column=0, padx="5")
+    label_timer.grid(row=3)
 
     button = tk.Button(window, text="Get card", fg="black", command=get_random_card)
-    button.grid(row=3, column=0, pady=10)
+    button.grid(row=4, column=0, pady=10)
 
     label_save_location = tk.Button(window, text="location:", command=ask_open_directory)
-    label_save_location.grid(row=4, column=0, sticky="w", padx=30)
+    label_save_location.grid(row=6, column=0, sticky="w", padx=30)
 
     input_save_location = tk.Text(window, height=1, width=80)
     input_save_location.insert(tk.INSERT, answers_saved_path)
-    input_save_location.grid(row=4, column=0, padx=90, sticky="w")
+    input_save_location.grid(row=6, column=0, padx=90, sticky="w")
 
     input_text = tk.Text(window, height=15, width=100)
-    input_text.grid(row=5, column=0, columnspan="3", padx=30, pady=10)
+    input_text.grid(row=7, column=0, padx=30, pady=10)
 
     button_save = tk.Button(window, text="Save", fg="black", command=save_answers)
-    button_save.grid(row=6, column=0, sticky="w", padx=30)
+    button_save.grid(row=8, column=0, sticky="w", padx=30)
 
     button_clear = tk.Button(window, text="Clear", fg="black", command=clear_input_text)
-    button_clear.grid(row=6, column=0, stick="w", padx="80")
+    button_clear.grid(row=8, column=0, stick="w", padx="80")
 
     #------------------------------------
 
     from multiprocessing import Process
 
+    multiprocessing.freeze_support()
+
     button_play_music = tk.Button(window, text="Play", command=play_music)
-    button_play_music.grid(row=6, column=0, stick="w", padx="130")
+    button_play_music.grid(row=8, column=0, stick="w", padx="130")
 
     button_stop = tk.Button(window, text="Stop", command=stop_music)
-    button_stop.grid(row=6, column=0, stick="w", padx="180")
+    button_stop.grid(row=8, column=0, stick="w", padx="180")
 
     button_show_me = tk.Button(window, text="show love birds <3", command=show_photo)
-    button_show_me.grid(row=6, column=0, stick="w", padx="230")
+    button_show_me.grid(row=8, column=0, stick="w", padx="230")
 
     label_file_saved = tk.Label(window)
-    label_file_saved.grid(row=7, column=0, stick="w", padx="50")
+    label_file_saved.grid(row=9, column=0, stick="w", padx="50")
+
+    excel_file = tk.Button(window, text="Browse Excel", command=browse_excel_file)
+    excel_file.grid(row=9, column=0, sticky="w", padx="30", pady="10")
+
+    label_excel_location = tk.Label(window, text="C:test")
+    label_excel_location.grid(row=9, column=0, sticky="w", padx="110")
 
     img = ImageTk.PhotoImage(Image.open("heart.jpg").resize((450, 300), Image.ANTIALIAS))
 
     love_birds_label = tk.Label(window, image=img)
-    love_birds_label.grid(row=8, rowspan=2, columnspan=2)
+    love_birds_label.grid(row=10, rowspan=2, columnspan=2)
     love_birds_label.grid_forget()
 
     window.mainloop()

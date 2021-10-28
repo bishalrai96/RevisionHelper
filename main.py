@@ -13,7 +13,7 @@ from PIL import ImageTk, Image
 from Reader.BPTReader import BPTReader
 from tkinter import filedialog
 import multiprocessing
-
+from tkinter import ttk
 TIMER_ID = "TIMER"
 process = None
 schedule = BackgroundScheduler()
@@ -54,7 +54,7 @@ def get_random_card():
     clear_input_text()
     if input_text.cget("state") == "disabled":
         input_text.config(state="normal", background="white")
-    label_topic.config(text=reader.get_random_topic())
+    label_topic.config(text=reader.get_random_topic(option_chapters.get()))
     timer.reset()
     label_file_saved.config(text="")
 
@@ -193,10 +193,20 @@ def browse_excel_file():
     excel_path = filedialog.askopenfile()
     if excel_path:
         label_excel_location.config(text=excel_path.name)
+        reader.parse_file(excel_path.name)
+        initialize_combobox()
 
-    reader.parse_file(excel_path.name)
-    reader.get_all_topics()
-    button.invoke()
+
+def initialize_combobox():
+    chapters = reader.get_chapters()
+    chapters.append("All")
+    option_chapters["values"] = chapters
+    option_chapters.current(len(chapters) - 1)
+    get_random_card()
+
+
+def display_selected(_):
+    get_random_card()
 
 
 if __name__ == "__main__":
@@ -204,14 +214,6 @@ if __name__ == "__main__":
     reader = BPTReader()
 
     current_path = pathlib.Path().resolve()
-    """
-    settings_file = open(str(current_path) + "\\settings.txt", "r")
-    excel_file_path = settings_file.readline()
-    settings_file.close()
-    
-    reader.parse_file(excel_file_path)
-    reader.get_all_topics()
-    """
 
     timer = Timer()
 
@@ -222,27 +224,32 @@ if __name__ == "__main__":
     screen_height = window.winfo_screenheight()
     window.geometry(str(screen_width)+"x"+str(screen_height))
 
-    label_topic = tk.Label(window, fg="red", font="Arial 12 bold")
+    label_topic = tk.Label(window, fg="red", text="No Excel File selected", font="Arial 12 bold")
     label_topic.grid(row=1, column=0)
 
-    input_set_timer = tk.Entry(window, fg="black", width="5")
-    input_set_timer.grid(row=2)
-    input_set_timer.insert(tk.INSERT, timer.current_timer())
-
     button_start_timer = tk.Button(window, text="Start", command=start_timer)
-    button_start_timer.grid(row=3, sticky="w", padx="298", pady="10")
+    button_start_timer.grid(row=3, sticky="w", padx="293", pady="10")
 
     button_pause_timer = tk.Button(window, text="Pause", command=pause_timer)
-    button_pause_timer.grid(row=3, sticky="w", padx="335")
+    button_pause_timer.grid(row=3, sticky="w", padx="330")
 
     button_stop_timer = tk.Button(window, text="Stop", command=stop_timer)
-    button_stop_timer.grid(row=3, sticky="w", padx="380")
+    button_stop_timer.grid(row=3, sticky="w", padx="375")
+
+    input_set_timer = tk.Entry(window, fg="black", width="5")
+    input_set_timer.grid(row=3,)
+    input_set_timer.insert(tk.INSERT, timer.current_timer())
 
     label_timer = tk.Label(window, text=timer.current_timer(), fg="black")
-    label_timer.grid(row=3, padx=10)
+    label_timer.grid(row=3, sticky="e", padx="388")
 
     label_invalid_time_format = tk.Label(window, fg="red")
-    label_invalid_time_format.grid(row=3, column=0, sticky="e", padx="310")
+    label_invalid_time_format.grid(row=3, column=0, sticky="e", padx="355")
+
+    option_chapters = ttk.Combobox(window)
+    option_chapters.grid(row=4)
+    option_chapters["state"] = "readonly"
+    option_chapters.bind("<<ComboboxSelected>>", display_selected)
 
     button = tk.Button(window, text="Get card", fg="black", command=get_random_card)
     button.grid(row=5, column=0, pady=10)

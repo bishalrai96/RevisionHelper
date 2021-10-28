@@ -20,14 +20,15 @@ schedule = BackgroundScheduler()
 
 STOP, PAUSE, RESUME = 1, 2, 3
 
+
 class Timer:
     def __init__(self):
-        self.status = RESUME
+        self.status = STOP
         self.PAUSE = 0
         self.RESUME = 0
 
-        self.default_minute = 4
-        self.default_second = 60
+        self.default_minute = 0
+        self.default_second = 10
         self.minute = self.default_minute
         self.seconds = self.default_second
 
@@ -96,8 +97,9 @@ def is_valid_time(user_timer):
     import time
     try:
         user_timer = time.strptime(user_timer, "%M:%S")
-
+        label_invalid_time_format.config(text="")
     except Exception as e:
+        label_invalid_time_format.config(text="Invalid Time format")
         return False
 
     return user_timer
@@ -111,7 +113,7 @@ def start_timer():
         user_timer = is_valid_time(input_set_timer.get())
         if user_timer:
             timer.reset(user_timer.tm_min, user_timer.tm_sec)
-        timer.status = RESUME
+            timer.status = RESUME
 
     if schedule.get_job(job_id=TIMER_ID) is None:
         user_timer = is_valid_time(input_set_timer.get())
@@ -127,6 +129,19 @@ def update_stopwatch():
         label_timer.config(text=timer.current_timer())
         if timer.seconds == 0 and timer.minute == 0:
             input_text.config(state="disabled", background="light grey")
+            label_timer.config(foreground="black")
+            timer.status = STOP
+
+        if timer.seconds == 5 and timer.minute == 0:
+            flashing_text(label_timer, "red", "black", timer)
+
+
+def flashing_text(widget, color_one, color_two, timer):
+    if timer.seconds != 0 and timer.seconds <= 5:
+        current_color = widget.cget("foreground")
+        next_color = color_one if current_color == color_two else color_two
+        widget.config(foreground=next_color)
+        window.after(500, flashing_text, label_timer, "red", "black", timer)
 
 
 def stop_timer():
@@ -146,8 +161,9 @@ def stop_music():
 
 def play_music():
     global process
-    process = Process(name="sound", target=play, daemon=True)
-    process.start()
+    if process is None:
+        process = Process(name="sound", target=play, daemon=True)
+        process.start()
 
 
 def play():
@@ -219,26 +235,30 @@ if __name__ == "__main__":
     button_stop_timer.grid(row=3, sticky="w", padx="380")
 
     label_timer = tk.Label(window, text=timer.current_timer(), fg="black")
-    label_timer.grid(row=3)
+    label_timer.grid(row=3, padx=10)
+
+    label_invalid_time_format = tk.Label(window, fg="red")
+    label_invalid_time_format.grid(row=3, column=0, sticky="e", padx="310")
 
     button = tk.Button(window, text="Get card", fg="black", command=get_random_card)
-    button.grid(row=4, column=0, pady=10)
+    button.grid(row=5, column=0, pady=10)
 
     label_save_location = tk.Button(window, text="location:", command=ask_open_directory)
-    label_save_location.grid(row=6, column=0, sticky="w", padx=30)
+    label_save_location.grid(row=7, column=0, sticky="w", padx=30)
 
     input_save_location = tk.Text(window, height=1, width=80)
     input_save_location.insert(tk.INSERT, answers_saved_path)
-    input_save_location.grid(row=6, column=0, padx=90, sticky="w")
+    input_save_location.grid(row=7, column=0, padx=90, sticky="w")
 
+    #, height=15, width=100
     input_text = tk.Text(window, height=15, width=100)
-    input_text.grid(row=7, column=0, padx=30, pady=10)
+    input_text.grid(row=8, column=0, padx=30, pady=10)
 
     button_save = tk.Button(window, text="Save", fg="black", command=save_answers)
-    button_save.grid(row=8, column=0, sticky="w", padx=30)
+    button_save.grid(row=9, column=0, sticky="w", padx=30)
 
     button_clear = tk.Button(window, text="Clear", fg="black", command=clear_input_text)
-    button_clear.grid(row=8, column=0, stick="w", padx="80")
+    button_clear.grid(row=9, column=0, stick="w", padx="80")
 
     #------------------------------------
 
@@ -247,27 +267,27 @@ if __name__ == "__main__":
     multiprocessing.freeze_support()
 
     button_play_music = tk.Button(window, text="Play", command=play_music)
-    button_play_music.grid(row=8, column=0, stick="w", padx="130")
+    button_play_music.grid(row=9, column=0, stick="w", padx="130")
 
     button_stop = tk.Button(window, text="Stop", command=stop_music)
-    button_stop.grid(row=8, column=0, stick="w", padx="180")
+    button_stop.grid(row=9, column=0, stick="w", padx="180")
 
     button_show_me = tk.Button(window, text="show love birds <3", command=show_photo)
-    button_show_me.grid(row=8, column=0, stick="w", padx="230")
+    button_show_me.grid(row=9, column=0, stick="w", padx="230")
 
     label_file_saved = tk.Label(window)
-    label_file_saved.grid(row=9, column=0, stick="w", padx="50")
+    label_file_saved.grid(row=10, column=0, stick="w", padx="50")
 
     excel_file = tk.Button(window, text="Browse Excel", command=browse_excel_file)
-    excel_file.grid(row=9, column=0, sticky="w", padx="30", pady="10")
+    excel_file.grid(row=10, column=0, sticky="w", padx="30", pady="10")
 
     label_excel_location = tk.Label(window, text="C:test")
-    label_excel_location.grid(row=9, column=0, sticky="w", padx="110")
+    label_excel_location.grid(row=10, column=0, sticky="w", padx="110")
 
     img = ImageTk.PhotoImage(Image.open("heart.jpg").resize((450, 300), Image.ANTIALIAS))
 
     love_birds_label = tk.Label(window, image=img)
-    love_birds_label.grid(row=10, rowspan=2, columnspan=2)
+    love_birds_label.grid(row=11, rowspan=2, columnspan=2)
     love_birds_label.grid_forget()
 
     window.mainloop()

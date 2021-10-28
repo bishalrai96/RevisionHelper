@@ -196,7 +196,7 @@ def browse_excel_file():
 
     reader.parse_file(excel_path.name)
     reader.get_all_topics()
-    button.update()
+    button.invoke()
 
 
 if __name__ == "__main__":
@@ -204,12 +204,14 @@ if __name__ == "__main__":
     reader = BPTReader()
 
     current_path = pathlib.Path().resolve()
+    """
     settings_file = open(str(current_path) + "\\settings.txt", "r")
     excel_file_path = settings_file.readline()
     settings_file.close()
-
+    
     reader.parse_file(excel_file_path)
     reader.get_all_topics()
+    """
 
     timer = Timer()
 
@@ -220,7 +222,7 @@ if __name__ == "__main__":
     screen_height = window.winfo_screenheight()
     window.geometry(str(screen_width)+"x"+str(screen_height))
 
-    label_topic = tk.Label(window, text=reader.get_random_topic(), fg="red", font="Arial 12 bold")
+    label_topic = tk.Label(window, fg="red", font="Arial 12 bold")
     label_topic.grid(row=1, column=0)
 
     input_set_timer = tk.Entry(window, fg="black", width="5")
@@ -283,7 +285,7 @@ if __name__ == "__main__":
     excel_file = tk.Button(window, text="Browse Excel", command=browse_excel_file)
     excel_file.grid(row=10, column=0, sticky="w", padx="30", pady="10")
 
-    label_excel_location = tk.Label(window, text="C:test")
+    label_excel_location = tk.Label(window)
     label_excel_location.grid(row=10, column=0, sticky="w", padx="110")
 
     img = ImageTk.PhotoImage(Image.open("heart.jpg").resize((450, 300), Image.ANTIALIAS))

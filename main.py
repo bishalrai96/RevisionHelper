@@ -111,6 +111,7 @@ def start_timer():
 
     elif timer.status == STOP:
         user_timer = is_valid_time(input_set_timer.get())
+        label_timer.config(foreground="black")
         if user_timer:
             timer.reset(user_timer.tm_min, user_timer.tm_sec)
             timer.status = RESUME
@@ -227,9 +228,10 @@ if __name__ == "__main__":
     input_set_timer.insert(tk.INSERT, timer.current_timer())
 
     button_start_timer = tk.Button(window, text="Start", command=start_timer)
-    button_start_timer.grid(row=3, sticky="w", padx="340", pady="10")
+    button_start_timer.grid(row=3, sticky="w", padx="298", pady="10")
 
     button_pause_timer = tk.Button(window, text="Pause", command=pause_timer)
+    button_pause_timer.grid(row=3, sticky="w", padx="335")
 
     button_stop_timer = tk.Button(window, text="Stop", command=stop_timer)
     button_stop_timer.grid(row=3, sticky="w", padx="380")
